@@ -1,0 +1,30 @@
+name: jse-radar
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.11
+  - pip
+  # Data
+  - pandas>=2.0
+  - numpy>=1.24
+  - pyarrow>=12.0
+  # Visualisation
+  - plotly>=5.15
+  - matplotlib>=3.7
+  - seaborn>=0.12
+  # Notebooks
+  - jupyterlab>=4.0
+  - ipykernel
+  - ipywidgets
+  # API / HTTP
+  - httpx>=0.24
+  - requests>=2.31
+  - python-dotenv>=1.0
+  # Database
+  - sqlalchemy>=2.0
+  # Testing
+  - pytest>=7.4
+  - pytest-cov>=4.1
+  - pip:
+      - -e .

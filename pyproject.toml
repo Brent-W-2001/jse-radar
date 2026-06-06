@@ -1,0 +1,58 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "jse-radar"
+version = "0.1.0"
+description = "JSE macroeconomic data pipeline, analysis, and dashboard"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "Brent Williams", email = "brentw2001@gmail.com" }]
+keywords = ["JSE", "macroeconomics", "finance", "South Africa", "radar"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Programming Language :: Python :: 3.11",
+    "License :: OSI Approved :: MIT License",
+]
+dependencies = [
+    "pandas>=2.0",
+    "numpy>=1.24",
+    "httpx>=0.24",
+    "python-dotenv>=1.0",
+    "plotly>=5.15",
+    "sqlalchemy>=2.0",
+    "pyarrow>=12.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4",
+    "pytest-cov>=4.1",
+    "ruff>=0.1",
+    "black>=23.0",
+    "mypy>=1.5",
+    "pre-commit>=3.5",
+]
+dashboard = ["dash>=2.13", "dash-bootstrap-components>=1.5"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/jse_radar"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "--cov=jse_radar --cov-report=term-missing"
+
+[tool.ruff]
+line-length = 88
+select = ["E", "F", "I", "N", "W"]
+
+[tool.black]
+line-length = 88
+target-version = ["py311"]
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
