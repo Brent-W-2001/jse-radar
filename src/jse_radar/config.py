@@ -54,10 +54,8 @@ JSE_TICKERS = {
     "^J400.JO": "Top40",
     # Resources
     "AGL.JO":   "Anglo American",
-    "BHP.JO":   "BHP Group",
     "SOL.JO":   "Sasol",
     "IMP.JO":   "Impala Platinum",
-    "AMS.JO":   "Anglo American Platinum",
     "GFI.JO":   "Gold Fields",
     "HAR.JO":   "Harmony Gold",
     # Financials
@@ -67,7 +65,6 @@ JSE_TICKERS = {
     "ABG.JO":   "Absa Group",
     "DSY.JO":   "Discovery",
     "SLM.JO":   "Sanlam",
-    "RMI.JO":   "RMI Holdings",
     # Industrials / Consumer
     "NPN.JO":   "Naspers",
     "PRX.JO":   "Prosus",
@@ -88,17 +85,21 @@ JSE_TICKERS = {
 
 # ── FRED series for South African macro ───────────────────────────────────────
 FRED_SERIES = {
-    "INTDSRZAM193N":    "repo_rate",
-    "MPSCZAM193N":      "prime_rate",
-    "ZAFCPIALLMINMEI":  "cpi_all",
-    "ZAFCPICORMINMEI":  "cpi_core",
-    "DEXSFUS":          "zar_usd",
-    "DEXUSEU":          "usd_eur",
-    "NGDPRSAXDCZAM":    "gdp_constant",
-    "XTEXVA01ZAM664S":  "exports_value",
-    "XTIMVA01ZAM664S":  "imports_value",
-    "LRUNTTTTZAM156S":  "unemployment_rate",
-    "MYAGM2ZAM189S":    "m2_money_supply",
+    # Monetary policy
+    "INTDSRZAM193N":   "repo_rate",         # SARB repo rate ✅
+    "PRSCZAM193N":     "prime_rate",        # SA prime rate (corrected ID)
+    # Inflation
+    "ZAFCPIALLMINMEI": "cpi_all",           # CPI all items ✅
+    "ZAFCPICORMINMEI": "cpi_core",          # CPI core ✅
+    # Exchange rates
+    "DEXSFUS":         "zar_usd",           # ZAR/USD daily ✅
+    "DEXUSEU":         "usd_eur",           # USD/EUR daily ✅
+    # Trade
+    "XTEXVA01ZAM664S": "exports_value",     # Exports ✅
+    "XTIMVA01ZAM664S": "imports_value",     # Imports ✅
+    # GDP — use World Bank instead (FRED SA GDP series retired)
+    # Unemployment — use World Bank instead (FRED SA series retired)
+    # Money supply — use World Bank instead (FRED SA series retired)
 }
 
 # ── World Bank series ─────────────────────────────────────────────────────────

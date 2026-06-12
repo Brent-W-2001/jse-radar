@@ -13,8 +13,8 @@ Why join at the ticker level?
 Join logic:
   - Equity data is daily
   - Macro data is monthly (after processing)
-  - We merge on year + month (asof merge so each trading day gets the
-    most recent available macro reading — this avoids look-ahead bias)
+  - We use an asof merge so each trading day gets the most recent
+    available macro reading — this avoids look-ahead bias.
 
 Output: data/processed/master/master_YYYYMMDD.parquet
 """
@@ -24,7 +24,6 @@ from __future__ import annotations
 import pandas as pd
 from pathlib import Path
 from datetime import datetime
-import glob
 
 from jse_radar.config import PROC_EQUITY_DIR, PROC_MACRO_DIR, PROC_MASTER_DIR
 from jse_radar.utils.logger import get_logger
@@ -47,6 +46,7 @@ class MasterBuilder:
         self.master_dir.mkdir(parents=True, exist_ok=True)
 
     def _latest(self, directory: Path, pattern: str) -> Path:
+        """Find the most recently modified file matching a glob pattern."""
         files = sorted(directory.glob(pattern), key=lambda f: f.stat().st_mtime)
         if not files:
             raise FileNotFoundError(f"No files matching {pattern} in {directory}")
@@ -60,30 +60,38 @@ class MasterBuilder:
         eq_path = self._latest(self.equity_dir, "equities_processed_*.parquet")
         logger.info(f"Loading equity data from {eq_path}")
         equity = pd.read_parquet(eq_path, engine="pyarrow")
-        equity["date"] = pd.to_datetime(equity["date"])
 
         # ── Load processed macro data ─────────────────────────────────────────
         macro_path = self._latest(self.macro_dir, "macro_processed_*.parquet")
         logger.info(f"Loading macro data from {macro_path}")
         macro = pd.read_parquet(macro_path, engine="pyarrow")
-        macro["date"] = pd.to_datetime(macro["date"])
 
-        # ── Prepare for asof merge ────────────────────────────────────────────
-        # pd.merge_asof matches each equity date to the most recent macro date
-        # that is <= the equity date. This is correct: on 15 Jan, you use the
-        # macro reading from 31 Dec (last month-end). You don't use Feb data
-        # because you wouldn't know that yet — no look-ahead bias.
-        equity = equity.sort_values("date")
-        macro  = macro.sort_values("date")
+        # ── Normalise datetime precision ──────────────────────────────────────
+        # pyarrow can write timestamps as milliseconds (ms) or microseconds (us)
+        # depending on the data source. pd.merge_asof requires both merge keys
+        # to have identical dtypes — if one is ms and the other is us, it raises
+        # an "incompatible merge keys" error even though the dates look the same.
+        # Casting both to datetime64[us] guarantees they match before merging.
+        equity["date"] = pd.to_datetime(equity["date"]).astype("datetime64[us]")
+        macro["date"]  = pd.to_datetime(macro["date"]).astype("datetime64[us]")
 
-        # Macro columns to bring across (exclude 'date' which is the merge key)
+        # ── Sort (required by merge_asof) ─────────────────────────────────────
+        equity = equity.sort_values("date").reset_index(drop=True)
+        macro  = macro.sort_values("date").reset_index(drop=True)
+
+        # ── Asof merge ────────────────────────────────────────────────────────
+        # merge_asof matches each equity date to the most recent macro date
+        # that is <= the equity date.
+        # Example: equity row dated 15 Jan gets the macro reading from 31 Dec.
+        # The Feb macro reading is not used until Feb trading days arrive.
+        # direction="backward" enforces this — no look-ahead bias.
         macro_cols = [c for c in macro.columns if c != "date"]
 
         master = pd.merge_asof(
             equity,
             macro[["date"] + macro_cols],
             on="date",
-            direction="backward",   # use the most recent macro reading on or before equity date
+            direction="backward",
         )
 
         logger.info(
