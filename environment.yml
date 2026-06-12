@@ -26,5 +26,8 @@ dependencies:
   # Testing
   - pytest>=7.4
   - pytest-cov>=4.1
+  - yfinance>=0.2.40
+  - wbgapi>=1.0.12
+  - fredapi>=0.5.1
   - pip:
       - -e .

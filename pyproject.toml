@@ -24,6 +24,8 @@ dependencies = [
     "plotly>=5.15",
     "sqlalchemy>=2.0",
     "pyarrow>=12.0",
+    "yfinance>=0.2.40",
+    "wbgapi>=1.0.12",
 ]
 
 [project.optional-dependencies]
