@@ -85,21 +85,18 @@ JSE_TICKERS = {
 
 # ── FRED series for South African macro ───────────────────────────────────────
 FRED_SERIES = {
-    # Monetary policy
-    "INTDSRZAM193N":   "repo_rate",         # SARB repo rate ✅
-    "PRSCZAM193N":     "prime_rate",        # SA prime rate (corrected ID)
+    # Interest rates
+    "INTGSTZAM193N":   "tbill_rate",        # SA Treasury Bills rate (repo proxy)
+    "INTGSBZAM193N":   "govt_bond_10y",     # SA 10-year government bond yield
     # Inflation
-    "ZAFCPIALLMINMEI": "cpi_all",           # CPI all items ✅
-    "ZAFCPICORMINMEI": "cpi_core",          # CPI core ✅
+    "ZAFCPIALLMINMEI": "cpi_all",
+    "ZAFCPICORMINMEI": "cpi_core",
     # Exchange rates
-    "DEXSFUS":         "zar_usd",           # ZAR/USD daily ✅
-    "DEXUSEU":         "usd_eur",           # USD/EUR daily ✅
+    "DEXSFUS":         "zar_usd",
+    "DEXUSEU":         "usd_eur",
     # Trade
-    "XTEXVA01ZAM664S": "exports_value",     # Exports ✅
-    "XTIMVA01ZAM664S": "imports_value",     # Imports ✅
-    # GDP — use World Bank instead (FRED SA GDP series retired)
-    # Unemployment — use World Bank instead (FRED SA series retired)
-    # Money supply — use World Bank instead (FRED SA series retired)
+    "XTEXVA01ZAM664S": "exports_value",
+    "XTIMVA01ZAM664S": "imports_value",
 }
 
 # ── World Bank series ─────────────────────────────────────────────────────────
