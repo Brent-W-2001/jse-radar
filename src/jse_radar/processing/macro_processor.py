@@ -79,10 +79,16 @@ class MacroProcessor:
             df_monthly["cpi_yoy_pct"] = df_monthly["cpi_all"].pct_change(12) * 100
 
         # Real interest rate (repo rate minus CPI YoY inflation)
-        if "repo_rate" in df_monthly.columns and "cpi_yoy_pct" in df_monthly.columns:
-            df_monthly["real_repo_rate"] = (
-                df_monthly["repo_rate"] - df_monthly["cpi_yoy_pct"]
-            )
+        if "tbill_rate" in df_monthly.columns and "cpi_yoy_pct" in df_monthly.columns:
+            df_monthly["real_tbill_rate"] = (
+        df_monthly["tbill_rate"] - df_monthly["cpi_yoy_pct"]
+    )
+
+# Yield curve spread (10y bond minus T-bill) — positive = normal, negative = inverted
+        if "govt_bond_10y" in df_monthly.columns and "tbill_rate" in df_monthly.columns:
+             df_monthly["yield_curve_spread"] = (
+        df_monthly["govt_bond_10y"] - df_monthly["tbill_rate"]
+    )
 
         # ── 6. Reset index and save ───────────────────────────────────────────
         df_monthly = df_monthly.reset_index()

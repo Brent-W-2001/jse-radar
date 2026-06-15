@@ -89,6 +89,23 @@ def main():
         logger.info(f"Master frame shape: {master.shape}")
     except Exception as e:
         logger.error(f"Master build failed: {e}")
+    try:
+        from jse_radar.analysis.signals import SignalEngine
+        SignalEngine().compute()
+    except Exception as e:
+        logger.error(f"Signal computation failed: {e}")
+
+    try:
+        from jse_radar.analysis.macro_regime import MacroRegimeClassifier
+        MacroRegimeClassifier().classify()
+    except Exception as e:
+        logger.error(f"Macro regime classification failed: {e}")
+
+    try:
+        from jse_radar.analysis.correlation import CorrelationAnalyser
+        CorrelationAnalyser().compute()
+    except Exception as e:
+        logger.error(f"Correlation analysis failed: {e}")
 
     logger.info("Pipeline complete.")
 
