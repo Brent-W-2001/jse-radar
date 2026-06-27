@@ -15,7 +15,7 @@ REM ─────────────────────────�
 
 REM ── Paths — update these if your install locations differ ─────────────────
 set REPO=D:\jse-radar
-set PYTHON=D:\miniforge3\envs\jse-radar\python.exe
+set PYTHON=D:\miniforge3_main\envs\jse-radar\python.exe
 set LOGFILE=%REPO%\logs\scheduler.log
 
 REM ── Write run header to log ───────────────────────────────────────────────
