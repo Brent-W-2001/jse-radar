@@ -2,14 +2,26 @@
 World Bank Fetcher — downloads SA macroeconomic indicators via wbgapi.
 
 wbgapi is the official Python client for the World Bank Open Data API.
-It's clean, requires no API key, and returns pandas DataFrames directly.
+It's clean, requires no API key, and can return pandas DataFrames directly.
 
-World Bank data is annual or quarterly — it gives us structural context
-(debt/GDP, current account balance, long-run growth) that FRED's series
-complement with higher-frequency monthly data.
+IMPORTANT: wbgapi has two similarly-named functions that behave very
+differently:
+  - wb.data.get()       → returns a single value/dict. NOT what we want.
+  - wb.data.DataFrame()  → returns a proper 2D pandas DataFrame. This is
+                           the correct function for fetching a full table
+                           of indicators across years.
+
+This was the source of a bug where the fetcher crashed with
+'dict' object has no attribute 'empty' — we were calling .get()
+which returns a dict-like object, not a DataFrame, so calling
+.empty on it failed.
+
+World Bank data is annual — it gives us structural context
+(debt/GDP, current account balance, long-run growth) that FRED's
+series complement with higher-frequency monthly data.
 
 Output file: data/raw/worldbank/worldbank_YYYYMMDD.parquet
-Column structure: year | gdp_growth_pct | inflation_cpi_pct | ... 
+Column structure: year | gdp_growth_pct | inflation_cpi_pct | ...
 """
 
 from __future__ import annotations
@@ -46,9 +58,12 @@ class WorldBankFetcher(DataFetcher):
         """
         Fetch all World Bank indicators for South Africa.
 
-        wbgapi.data.get() returns a DataFrame indexed by (economy, time).
-        We select South Africa only, pivot indicators into columns,
-        and convert the "YR2020" style year strings to integers.
+        wb.data.DataFrame() returns a DataFrame with indicators as the
+        index and years as columns (e.g. 'YR2020') by default. We pass
+        numericTimeKeys=True so years come back as plain integers, and
+        columns='series' so indicators become columns instead — this
+        gives us directly the shape we want: year as rows, indicator as
+        columns, with almost no reshaping needed.
         """
         try:
             import wbgapi as wb
@@ -65,48 +80,45 @@ class WorldBankFetcher(DataFetcher):
             f"for {self.country}: {start_year} → {end_year}"
         )
 
-        indicator_ids   = list(self.indicators.keys())
-        indicator_names = list(self.indicators.values())
+        indicator_ids = list(self.indicators.keys())
 
         try:
-            # wb.data.get returns a DataFrame with MultiIndex (economy, series, time)
-            # mrv=None means fetch all available years (not just most recent)
-            raw = wb.data.get(
+            # economy=self.country must be a list for consistent shape
+            # columns='series' pivots indicators into columns directly
+            # numericTimeKeys=True gives us plain ints instead of 'YR2020'
+            raw = wb.data.DataFrame(
                 indicator_ids,
                 economy=self.country,
                 time=range(start_year, end_year + 1),
+                columns="series",
+                numericTimeKeys=True,
+                skipBlanks=False,
             )
         except Exception as e:
             logger.error(f"World Bank API error: {e}")
             raise
 
-        if raw.empty:
+        if raw is None or raw.empty:
             logger.warning("World Bank returned empty DataFrame.")
             return
 
-        # The DataFrame index has levels: economy, series, time
-        # We only have one economy (ZAF) so we drop that level.
-        # Then we unstack the series level to get one column per indicator.
+        # ── Reshape ────────────────────────────────────────────────────────────
+        # With a single economy and columns='series', the index is the
+        # time dimension (years) and columns are indicator codes.
+        # We reset the index so 'year' becomes a normal column.
         df = raw.reset_index()
 
-        # Rename the time column and extract year as integer
-        # World Bank time format is "YR2020", "YR2021", etc.
-        if "time" in df.columns:
-            df["year"] = df["time"].str.replace("YR", "").astype(int)
-            df = df.drop(columns=["time"])
+        # The index column is named 'time' or sometimes 'index' depending
+        # on wbgapi version — normalise it to 'year'.
+        index_col = df.columns[0]
+        df = df.rename(columns={index_col: "year"})
 
-        # Drop the economy column (all ZAF)
-        if "economy" in df.columns:
-            df = df.drop(columns=["economy"])
+        # Rename indicator codes to our human-readable labels
+        df = df.rename(columns=self.indicators)
 
-        # Pivot: one column per indicator
-        if "series" in df.columns and "value" in df.columns:
-            df = df.pivot(index="year", columns="series", values="value")
-            df.columns.name = None
-            df = df.rename(columns=self.indicators)
-            df = df.reset_index()
-
-        df = df.sort_values("year").reset_index(drop=True)
+        # Ensure year is a clean integer and sort chronologically
+        df["year"] = pd.to_numeric(df["year"], errors="coerce").astype("Int64")
+        df = df.dropna(subset=["year"]).sort_values("year").reset_index(drop=True)
 
         filename = f"worldbank_{datetime.now().strftime('%Y%m%d')}.parquet"
         output_path = self.raw_dir / filename
