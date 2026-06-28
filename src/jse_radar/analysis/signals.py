@@ -43,6 +43,50 @@ from jse_radar.utils.logger import get_logger
 logger = get_logger(__name__)
 
 
+def compute_rsi(series: pd.Series, window: int = 14) -> pd.Series:
+    """
+    Relative Strength Index using Wilder's exponential smoothing.
+
+    RSI measures the speed and magnitude of recent price changes.
+    RSI > 70: overbought (potential sell signal)
+    RSI < 30: oversold (potential buy signal)
+    Standard window is 14 days.
+
+    Edge cases explicitly handled:
+      - avg_loss == 0 (no losses at all in the window): RSI = 100,
+        not undefined. A stock that only ever goes up is maximally
+        bullish by definition, not "no data".
+      - avg_gain == 0 (no gains at all in the window): RSI = 0,
+        the mirror case.
+    Without these explicit cases, dividing by a zero avg_loss produces
+    NaN forever for any stock on a long enough winning streak — which
+    would otherwise look like a silent gap in the dashboard with no
+    obvious cause.
+
+    This function is defined at module level (not nested inside
+    compute()) so it can be imported directly and tested in isolation
+    — see tests/test_signals.py.
+    """
+    delta = series.diff()
+    gain  = delta.clip(lower=0)
+    loss  = -delta.clip(upper=0)
+    avg_gain = gain.ewm(com=window - 1, min_periods=window).mean()
+    avg_loss = loss.ewm(com=window - 1, min_periods=window).mean()
+
+    rs  = avg_gain / avg_loss.replace(0, np.nan)
+    rsi = 100 - (100 / (1 + rs))
+
+    # Where avg_loss is exactly 0 and avg_gain > 0: RSI = 100 (all gains)
+    all_gains_mask = (avg_loss == 0) & (avg_gain > 0)
+    rsi = rsi.where(~all_gains_mask, 100.0)
+
+    # Where avg_gain is exactly 0 and avg_loss > 0: RSI = 0 (all losses)
+    all_losses_mask = (avg_gain == 0) & (avg_loss > 0)
+    rsi = rsi.where(~all_losses_mask, 0.0)
+
+    return rsi
+
+
 class SignalEngine:
     """Computes momentum, mean reversion, and trend signals on the master frame."""
 
@@ -147,22 +191,8 @@ class SignalEngine:
         )
 
         # ── 6. Relative Strength Index (RSI) ─────────────────────────────────
-        # RSI measures the speed and magnitude of recent price changes.
-        # RSI > 70: overbought (potential sell signal)
-        # RSI < 30: oversold (potential buy signal)
-        # Standard window is 14 days.
-
-        def compute_rsi(series: pd.Series, window: int = 14) -> pd.Series:
-            delta = series.diff()
-            gain  = delta.clip(lower=0)
-            loss  = -delta.clip(upper=0)
-            # Use exponential moving average for smoothing (Wilder's method)
-            avg_gain = gain.ewm(com=window - 1, min_periods=window).mean()
-            avg_loss = loss.ewm(com=window - 1, min_periods=window).mean()
-            rs  = avg_gain / avg_loss.replace(0, np.nan)
-            rsi = 100 - (100 / (1 + rs))
-            return rsi
-
+        # See compute_rsi() at module level above for the implementation
+        # and the all-gains/all-losses edge case handling.
         df["rsi_14"] = (
             df.groupby("ticker")["close"]
             .transform(compute_rsi)
