@@ -1,5 +1,50 @@
 # Changelog
 
+## 2026-06-30 — Modeling layer added
+
+### Markov chain
+- `src/jse_radar/modeling/markov_chain.py`: first-order Markov chain
+  estimating regime transition probabilities from observed history,
+  with confidence flagging for transition rows backed by too few
+  historical occurrences, and `expected_regime_duration()` via the
+  geometric-distribution formula
+- Cross-validated against the regime notebook's own hand-counted spell
+  lengths: exact agreement for HIKING_HIGH_INFLATION (6.8 months via
+  both independent methods)
+- 16 tests, 76% coverage
+
+### Regime predictor
+- `src/jse_radar/modeling/regime_predictor.py`: logistic regression
+  predicting P(stock outperforms ALSI over next 21 trading days |
+  momentum/RSI/trend signals, composite regime). Strict chronological
+  train/test splitting (no random shuffling — the modeling-layer
+  equivalent of the master builder's no-look-ahead-bias guarantee).
+  Handles unseen/missing regimes between train and test via a fixed,
+  reindexed one-hot column set
+- 13 tests, 100% coverage — every line of production code directly tested
+
+### Walk-forward backtester
+- `src/jse_radar/modeling/backtester.py`: monthly walk-forward
+  evaluation — refits the model at every rebalance date using only
+  prior data, selects top-5 predicted picks, measures realised return
+  vs the ALSI, applies a 15bps rebalancing cost haircut
+- 10 tests, 91% coverage, including an explicit re-derivation check
+  proving no period's training data ever includes its own test date
+
+### Honest result
+- **111 monthly rebalance periods evaluated. Hit rate: 49.5%. Average
+  net excess return: +0.30%/month. Sharpe-style ratio: 0.21.**
+- The model does NOT demonstrate a reliable edge over holding the ALSI
+  — statistically indistinguishable from chance. Documented in
+  `notebooks/03_modeling_and_backtest.ipynb` as a reproducible baseline,
+  not treated as a failure: any future modeling attempt on this data
+  has a clear, honestly-measured bar to beat.
+
+### Testing
+- Full suite now at 108 tests across 10 files (up from 77 across 7)
+
+---
+
 ## 2026-06-29 — Project complete
 
 ### Data pipeline
