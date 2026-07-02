@@ -1,4 +1,4 @@
-# jse-radar
+# JSE Radar
 
 > A macroeconomic data pipeline, analysis suite, and interactive dashboard
 > for the Johannesburg Stock Exchange (JSE) and South African macro
